@@ -1,0 +1,21 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@slflows/sdk": "^0.0.7",
+    "turndown": "^7.1.3",
+    "typescript": "^5.8.3",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "@types/turndown": "^5.0.5",
+    "@useflows/flowctl": "^0.1.1",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2"
+  },
+  "scripts": {
+    "bundle": "npx flowctl version bundle -e main.ts",
+    "format": "npx prettier --write .",
+    "typecheck": "npx tsc --noEmit"
+  }
+}
