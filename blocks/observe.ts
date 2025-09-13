@@ -2,11 +2,26 @@ import { AppBlock, events } from "@slflows/sdk/v1";
 
 const observe: AppBlock = {
   name: "Observe",
-  description: "Observe a value and emits an event every time it changes.",
+  description: "Watches signals for changes and emits events when they occur",
   config: {
     value: {
       name: "Value to observe",
-      description: "Every time this value changes, an event will be emitted.",
+      description:
+        "The value to monitor for changes - almost always a signal from another block.\n\n" +
+        "What to connect:\n" +
+        "- Signals from other blocks (most common use case)\n" +
+        "- User input fields or form data\n" +
+        "- Database query results\n" +
+        "- API response data\n" +
+        "- State variables from other components\n\n" +
+        "Behavior:\n" +
+        "- Uses deep comparison to detect changes (works with objects and arrays)\n" +
+        "- On first run, stores the value but doesn't emit an event\n" +
+        "- Every subsequent change triggers an event with old/new values\n\n" +
+        "Examples:\n" +
+        "- Connect to a user profile signal to detect login changes\n" +
+        "- Monitor a database query signal for new records\n" +
+        "- Watch an API status signal for service updates",
       type: "any",
       required: true,
       default: 42,
@@ -62,25 +77,20 @@ const observe: AppBlock = {
     }
 
     // No change detected
-    return {
-      newStatus: "ready",
-    };
+    return { newStatus: "ready" };
   },
 
-  onDrain: async () => {
-    return {
-      newStatus: "drained",
-    };
-  },
   signals: {
     value: {
       name: "Value",
-      description: "Value to compare against the watched expression",
+      description:
+        "Current observed value - stores the most recent value for comparison against future changes.",
     },
     lastUpdatedAt: {
       name: "Last updated at",
       description:
-        "Timestamp (Unix milliseconds) when the value was last updated",
+        "Timestamp (Unix milliseconds) when the observed value was last updated. " +
+        "Used to calculate time between changes.",
     },
   },
   outputs: {
@@ -90,15 +100,20 @@ const observe: AppBlock = {
         properties: {
           previous: {
             type: "any",
-            description: "Previous value of the expression",
+            description:
+              "Previous value before the change occurred. Can be any data type " +
+              "(string, number, object, array, etc.).",
           },
           current: {
             type: "any",
-            description: "Current value of the expression",
+            description:
+              "New current value after the change. This is what triggered the event emission.",
           },
           millisSinceLastUpdate: {
             type: "number",
-            description: "Milliseconds elapsed since the last update",
+            description:
+              "Time elapsed in milliseconds since the last value change. Useful for " +
+              "rate limiting, debouncing, or understanding change frequency.",
           },
         },
         required: ["previous", "current", "millisSinceLastUpdate"],

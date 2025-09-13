@@ -9,11 +9,22 @@ const KV_KEYS = {
 const capture: AppBlock = {
   name: "Capture",
   description:
-    "Captures the last event received and makes it available as an exported key value",
+    "Converts events into persistent signals that other blocks can observe",
   config: {
     defaultValue: {
       name: "Default value",
-      description: "Default value to use when no event has been captured yet",
+      description:
+        "The starting value for your signal before any events are captured, " +
+        "and the value it returns to when the capture expires.\n\n" +
+        "What to set:\n" +
+        "- Choose a value that makes sense when nothing has happened yet\n" +
+        "- This value is used when the timeout resets the signal\n" +
+        "- Should match the type of data you expect to capture\n\n" +
+        "Examples:\n" +
+        "- Empty object `{}` for API response captures\n" +
+        "- `false` for boolean status signals\n" +
+        "- Empty string for text-based signals\n" +
+        "- `null` for optional value signals",
       type: "any",
       required: false,
       default: {},
@@ -24,6 +35,8 @@ const capture: AppBlock = {
       config: {
         value: {
           name: "Value to export",
+          description:
+            "The specific data you want to extract from the event and turn into a signal.",
           type: "any",
           required: true,
           default: {},
@@ -31,7 +44,17 @@ const capture: AppBlock = {
         timeoutSeconds: {
           name: "Timeout in seconds",
           description:
-            "If set, the value will revert to default after this time period",
+            "How long to keep the captured value before automatically resetting to the default.\n\n" +
+            "Why use a timeout:\n" +
+            "- Prevents old signals from sticking around forever\n" +
+            "- Great for temporary status indicators\n" +
+            "- Signal automatically returns to default value after timeout\n\n" +
+            "Good for:\n" +
+            '- Temporary status messages ("processing" → "idle")\n' +
+            "- Rate limiting signals that should reset\n" +
+            "- Error states that should clear automatically\n" +
+            "- One-time triggers that need to reset\n\n" +
+            "Leave empty for permanent signals that stay until overwritten.",
           type: "number",
           required: false,
         },
@@ -167,22 +190,43 @@ const capture: AppBlock = {
   signals: {
     value: {
       name: "Value",
-      description: "The last received value",
+      description:
+        "The captured signal value - this is what other blocks observe and react to.\n\n" +
+        "Main signal to connect:\n" +
+        "- Connect this to other blocks like observe blocks or conditional logic\n" +
+        "- Updates whenever a new event is captured\n" +
+        "- Triggers connected blocks when the value changes\n" +
+        "- Automatically reverts to default value when timeout expires",
     },
     updatedAt: {
       name: "Last updated timestamp",
       description:
-        "Timestamp (Unix milliseconds) when the value was last updated",
+        "When the signal was last updated (Unix milliseconds timestamp).\n\n" +
+        "Useful for:\n" +
+        "- Checking how fresh your captured data is\n" +
+        "- Creating time-based logic\n" +
+        "- Debugging when signals were updated\n" +
+        "- Building time-based triggers",
     },
     updatedBy: {
       name: "Updated by",
       description:
-        "ID of the event that set the current value (null if using default value)",
+        "The ID of the event that created this signal (null if using default value).\n\n" +
+        "Useful for:\n" +
+        "- Tracking which event produced the current signal\n" +
+        "- Debugging where signals came from\n" +
+        "- Correlating signals with specific events\n" +
+        "- Creating audit trails of signal changes",
     },
     expiresAt: {
       name: "Expires at",
       description:
-        "Timestamp (Unix milliseconds) when the value will expire and revert to default (null if no expiration)",
+        "When the signal will automatically reset (Unix milliseconds timestamp, null if no expiration).\n\n" +
+        "Useful for:\n" +
+        "- Monitoring how long until the signal expires\n" +
+        "- Creating cleanup logic\n" +
+        "- Building time-based state machines\n" +
+        "- Debugging timeout behavior",
     },
   },
 };
