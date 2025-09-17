@@ -1,27 +1,49 @@
-import { AppBlock, events, kv, lifecycle, timers } from "@slflows/sdk/v1";
-import label from "./label.ts";
+import {
+  AppBlock,
+  EntityLifecycleCallbackOutput,
+  events,
+  kv,
+  lifecycle,
+  timers,
+} from "@slflows/sdk/v1";
+
+const CURRENT_HOLDER_KEY = "currentHolder";
+
+const clearLock = async (eventId: string): Promise<Boolean> => {
+  return await kv.block.set({
+    key: CURRENT_HOLDER_KEY,
+    value: null,
+    ttl: 0,
+    lock: { id: eventId },
+  });
+};
+
+const statusHeld: EntityLifecycleCallbackOutput = {
+  newStatus: "ready",
+  customStatusDescription: "Held",
+};
 
 const mutex: AppBlock = {
+  autoconfirm: true,
   name: "Mutex",
-  description: "Only allow a single event to be processed at a time",
-  config: {
-    releaser: {
-      name: "Releaser value",
-      description: "When this value changes, the mutex will be released",
-      type: "string",
-      required: true,
-      default: "",
-    },
-  },
-  onSync: async (input) => {
+  description:
+    "Ensures only one event can be processed at a time by creating a queue system.\n\n" +
+    "How it works:\n" +
+    "- Events are queued in arrival order\n" +
+    "- Only the first event gets processed immediately\n" +
+    "- Others wait their turn until the mutex is released\n\n" +
+    "Release mechanisms:\n" +
+    "- Automatic timeout: Events are released after the configured timeout period\n" +
+    "- Manual release: Use the `release` input to manually release the mutex\n\n" +
+    "Use cases: Rate-limited APIs, file operations, database transactions, " +
+    "or any resource that can only handle one operation at a time.",
+
+  onSync: async () => {
     // First, detect if the releaser value has changed by comparing the one
     // stored in the KV store with the one provided in the config.
-    const { value: oldReleaser } = await kv.block.get("releaser");
-    const newReleaser = input.block.config.releaser;
-
-    // If there is no change in the releaser value, the mutex is still held.
-    if (oldReleaser === newReleaser) {
-      return { newStatus: "ready" };
+    const { value: currentHolder } = await kv.block.get(CURRENT_HOLDER_KEY);
+    if (currentHolder) {
+      return statusHeld;
     }
 
     // Get the next event ID. When we list events, they are sorted by
@@ -31,78 +53,89 @@ const mutex: AppBlock = {
     // It is possible that there are no events waiting for the mutex
     // to be released.
     if (pairs.length === 0) {
-      await label("Available", "#51d54f");
-      return { newStatus: "ready" };
+      return {
+        newStatus: "ready",
+        customStatusDescription: "Available",
+      };
     }
 
     // Extract the eldest waiting event from our queue of contenders
-    const [{ key, value: timeout }] = pairs;
+    const [
+      {
+        key,
+        value: { timeout, pendingId },
+      },
+    ] = pairs;
     const eventId = key.split(":")[1];
 
     await Promise.all([
       timers.set(timeout, { inputPayload: eventId }),
-      label("Held", "#ffcb66"),
       kv.block.setMany([
-        { key: "currentHolder", value: eventId },
-        { key: "releaser", value: newReleaser },
+        { key: CURRENT_HOLDER_KEY, value: eventId, lock: { id: eventId } },
         { key: `evt:${eventId}`, value: "", ttl: 0 }, // Delete the event from the queue.
       ]),
-      events.emit({ lockId: eventId }, { parentEventId: eventId }),
+      events.emit(
+        { lockId: eventId },
+        { complete: pendingId, echo: true, parentEventId: eventId },
+      ),
     ]);
 
-    return { newStatus: "ready" };
+    return statusHeld;
   },
-  onDrain: async () => {
-    return { newStatus: "drained" };
-  },
+
   onTimer: async ({ timer: { payload: eventId } }) => {
-    // Timer no longer useful, possibly related to an older event.
-    // We can safely ignore it.
-    if ((await kv.block.get("currentHolder")).value !== eventId) {
-      return;
+    if (await clearLock(eventId || "")) {
+      await lifecycle.sync();
     }
-
-    // Resetting the releaser means that we release the next event
-    // when the next sync completes.
-    await Promise.all([
-      kv.block.set({ key: "releaser", value: Date.now().toString() }),
-      lifecycle.sync(),
-    ]);
   },
 
   inputs: {
     default: {
+      name: "Acquire",
+      description: "Attempts to acquire the mutex lock for processing",
       config: {
         timeout: {
           name: "Lock timeout",
           type: "number",
-          description:
-            "Time (in seconds) the mutex can be held before automatic release",
+          description: "Automatic release timeout in seconds.",
           required: true,
           default: 60,
         },
       },
       onEvent: async ({ event }) => {
-        Promise.all([
-          // We could also think of expiring these events after a certain
-          // time if they cannot acquire the lock.
-          await kv.block.set({
-            key: `evt:${event.id}`,
-            value: event.inputConfig.timeout,
-          }),
-          await lifecycle.sync(),
-        ]);
+        const pendingId = await events.createPending({
+          statusDescription: "Waiting for mutex",
+        });
+        const timeout = event.inputConfig.timeout;
+
+        await kv.block.set({
+          key: `evt:${event.id}`,
+          value: { pendingId, timeout },
+        });
+        await lifecycle.sync();
+      },
+    },
+    release: {
+      name: "Release",
+      description: "Releases the mutex lock",
+      config: {},
+      onEvent: async ({ event: { echo } }) => {
+        if (await clearLock(echo?.body.lockId || "")) {
+          await lifecycle.sync();
+        }
       },
     },
   },
   outputs: {
     default: {
+      possiblePrimaryParents: ["default"],
       type: {
         type: "object",
         properties: {
           lockId: {
             type: "string",
-            description: "Identifier for the acquired lock",
+            description:
+              "Unique identifier for the event that acquired the mutex",
           },
         },
       },

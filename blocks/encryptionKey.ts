@@ -1,114 +1,70 @@
-import { AppBlock, events, kv } from "@slflows/sdk/v1";
+import { AppBlock } from "@slflows/sdk/v1";
 
 const encryptionKey: AppBlock = {
+  autoconfirm: true,
   name: "Encryption key",
   description:
-    "Generates and exports an AES-256 symmetric encryption key for secure data operations",
-  onSync: async () => {
+    "Creates secure encryption keys to protect your sensitive data. " +
+    "This block generates a strong encryption key that stays in your environment " +
+    "and never gets logged by the platform.\n\n" +
+    "How it works:\n" +
+    "1. Creates a secure AES-256 encryption key in your environment\n" +
+    "2. You use this key to encrypt sensitive data before sending it to the platform\n" +
+    "3. The platform only sees encrypted data - your sensitive information stays private\n" +
+    "4. You can decrypt the data later using the same key\n\n" +
+    "Security benefits:\n" +
+    "- Encrypt sensitive data in events to protect privacy\n" +
+    "- The key is marked as sensitive so it won't appear in logs\n" +
+    "- Uses military-grade AES-256 encryption\n" +
+    "- Cryptoshredding: Delete and recreate the encryption key to permanently destroy access to encrypted data in events\n\n" +
+    "Encryption helpers you can use:\n" +
+    '- `encrypt(ref("signal.encryptionKey.key"), plaintext)` - Encrypts your text using the key\n' +
+    '- `decrypt(ref("signal.encryptionKey.key"), encryptedData)` - Decrypts your data back to readable text\n\n' +
+    "Great for protecting:\n" +
+    "- Personal information (names, addresses, phone numbers)\n" +
+    "- Login credentials and API keys\n" +
+    "- Financial data and payment information\n" +
+    "- Any other sensitive information you don't want visible in logs",
+  onSync: async ({ block }) => {
+    if (!!block.lifecycle?.signals?.key) {
+      return { newStatus: "ready" };
+    }
+
     try {
-      // Check if we already have a key
-      const { value: existingKey } = await kv.block.get("currentKey");
-      const { value: createdAt } = await kv.block.get("createdAt");
-
-      if (!existingKey) {
-        // Generate a new key if one doesn't exist
-        const key = await generateKey();
-        const createdAt = Date.now();
-
-        // Store the key and timestamp
-        await kv.block.setMany([
-          { key: "currentKey", value: key },
-          { key: "createdAt", value: createdAt },
-        ]);
-
-        return {
-          signalUpdates: { key, createdAt },
-          newStatus: "ready",
-        };
-      }
-
       return {
-        signalUpdates: {
-          key: existingKey,
-          createdAt: createdAt,
-        },
+        signalUpdates: { key: await generateKey() },
         newStatus: "ready",
       };
     } catch (error) {
       console.error("Error in encryption key sync:", error);
+
       return {
         newStatus: "failed",
-        customStatusDescription: `Failed to manage encryption key: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        customStatusDescription: "See logs for details",
       };
     }
-  },
-  onDrain: async () => {
-    return { newStatus: "drained" };
   },
   signals: {
     key: {
       name: "Encryption key",
-      description: "Base64-encoded AES-256 symmetric encryption key",
+      description:
+        "A secure encryption key that you can use to protect sensitive data in your flows.\n\n" +
+        "How to use this key:\n" +
+        "- Connect this signal to encryption functions in your output customization\n" +
+        "- Encrypt any sensitive information before it gets sent to the platform\n" +
+        "- This ensures your private data never appears in platform logs\n\n" +
+        "Technical details:\n" +
+        "- This is a 256-bit AES encryption key (very secure)\n" +
+        "- The key is created in your environment using secure random generation\n" +
+        "- It's marked as sensitive so the platform won't show it by default\n" +
+        "- You use the same key to both encrypt and decrypt your data\n\n" +
+        "Example usage:\n" +
+        "```\n" +
+        "// In output customization of some other block\n" +
+        `const encryptedData = encrypt(ref("signal.encryptionKey.key"), plaintext)\n` +
+        "// Now you're sending encrypted data instead of plain text\n" +
+        "```",
       sensitive: true, // Mark as sensitive
-    },
-    createdAt: {
-      name: "Created at",
-      description: "Timestamp when the key was generated",
-    },
-  },
-  inputs: {
-    default: {
-      name: "Generate IV",
-      description: "Generates a new initialization vector for encryption",
-      onEvent: async () => {
-        try {
-          // Ensure a key exists
-          const { value: existingKey } = await kv.block.get("currentKey");
-
-          if (!existingKey) {
-            // Generate a new key if one doesn't exist
-            const key = await generateKey();
-            const createdAt = Date.now();
-
-            await kv.block.setMany([
-              { key: "currentKey", value: key },
-              { key: "createdAt", value: createdAt },
-            ]);
-          }
-
-          // Generate a new IV (12 bytes for AES-GCM)
-          const iv = generateIV();
-
-          // Emit only the IV
-          await events.emit(
-            {
-              iv: iv,
-            },
-            { outputKey: "encryption" },
-          );
-        } catch (error) {
-          console.error("Error generating IV:", error);
-        }
-      },
-    },
-  },
-  outputs: {
-    encryption: {
-      name: "Encryption IV",
-      description: "Provides initialization vector for encryption operations",
-      possiblePrimaryParents: ["default"],
-      type: {
-        type: "object",
-        properties: {
-          iv: {
-            type: "string",
-            description: "Base64-encoded initialization vector",
-          },
-        },
-        required: ["iv"],
-      },
     },
   },
 };
@@ -117,10 +73,7 @@ const encryptionKey: AppBlock = {
 async function generateKey(): Promise<string> {
   // Generate an AES-256 key
   const key = await crypto.subtle.generateKey(
-    {
-      name: "AES-GCM",
-      length: 256,
-    },
+    { name: "AES-GCM", length: 256 },
     true, // extractable
     ["encrypt", "decrypt"],
   );
@@ -130,16 +83,6 @@ async function generateKey(): Promise<string> {
 
   // Convert to base64
   return btoa(String.fromCharCode(...new Uint8Array(rawKey)));
-}
-
-// Helper function to generate a random IV for AES-GCM
-function generateIV(): string {
-  // Generate 12 bytes (96 bits) for AES-GCM
-  const iv = new Uint8Array(12);
-  crypto.getRandomValues(iv);
-
-  // Convert to base64
-  return btoa(String.fromCharCode(...iv));
 }
 
 export default encryptionKey;
