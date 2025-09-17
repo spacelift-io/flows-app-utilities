@@ -19,12 +19,7 @@ const capture: AppBlock = {
         "What to set:\n" +
         "- Choose a value that makes sense when nothing has happened yet\n" +
         "- This value is used when the timeout resets the signal\n" +
-        "- Should match the type of data you expect to capture\n\n" +
-        "Examples:\n" +
-        "- Empty object `{}` for API response captures\n" +
-        "- `false` for boolean status signals\n" +
-        "- Empty string for text-based signals\n" +
-        "- `null` for optional value signals",
+        "- Should match the type of data you expect to capture",
       type: "any",
       required: false,
       default: {},

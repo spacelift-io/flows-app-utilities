@@ -1,6 +1,7 @@
-import { AppBlock, events } from "@slflows/sdk/v1";
+import { AppBlock } from "@slflows/sdk/v1";
 
 const encryptionKey: AppBlock = {
+  autoconfirm: true,
   name: "Encryption key",
   description:
     "Creates secure encryption keys to protect your sensitive data. " +
@@ -12,13 +13,13 @@ const encryptionKey: AppBlock = {
     "3. The platform only sees encrypted data - your sensitive information stays private\n" +
     "4. You can decrypt the data later using the same key\n\n" +
     "Security benefits:\n" +
-    "- Your encryption key is created locally and never shared with the platform\n" +
-    "- The platform processes your events but cannot read encrypted data\n" +
+    "- Encrypt sensitive data in events to protect privacy\n" +
     "- The key is marked as sensitive so it won't appear in logs\n" +
-    "- Uses military-grade AES-256 encryption\n\n" +
+    "- Uses military-grade AES-256 encryption\n" +
+    "- Cryptoshredding: Delete and recreate the encryption key to permanently destroy access to encrypted data in events\n\n" +
     "Encryption helpers you can use:\n" +
-    '- `encrypt(ref("signal.encryptionKey.key"), outputs.encryptionKey, plaintext)` - Encrypts your text using the key\n' +
-    '- `decrypt(ref("signal.encryptionKey.key"), outputs.encryptionKey, encryptedData)` - Decrypts your data back to readable text\n\n' +
+    '- `encrypt(ref("signal.encryptionKey.key"), plaintext)` - Encrypts your text using the key\n' +
+    '- `decrypt(ref("signal.encryptionKey.key"), encryptedData)` - Decrypts your data back to readable text\n\n' +
     "Great for protecting:\n" +
     "- Personal information (names, addresses, phone numbers)\n" +
     "- Login credentials and API keys\n" +
@@ -60,47 +61,10 @@ const encryptionKey: AppBlock = {
         "Example usage:\n" +
         "```\n" +
         "// In output customization of some other block\n" +
-        `const encryptedData = encrypt(ref("signal.encryptionKey.key"), outputs.encryptionKey, plaintext)\n` +
+        `const encryptedData = encrypt(ref("signal.encryptionKey.key"), plaintext)\n` +
         "// Now you're sending encrypted data instead of plain text\n" +
         "```",
       sensitive: true, // Mark as sensitive
-    },
-  },
-  inputs: {
-    default: {
-      name: "Generate IV",
-      description:
-        "Creates a unique code needed for encryption (called an initialization vector or IV).\n\n" +
-        "Why you need this:\n" +
-        "- Each time you encrypt data, you need a fresh IV to keep it secure\n" +
-        "- Even if you encrypt the same text twice, it will look different each time\n" +
-        "- IVs are safe to share - they're not secret like the encryption key\n\n" +
-        "How to use:\n" +
-        "1. Send an event to this input to create a new IV\n" +
-        "2. Use the returned IV along with your encryption key to encrypt data\n" +
-        "3. Include the IV in your event data (you'll need it to decrypt later)\n\n" +
-        "Security note: Using a fresh IV each time prevents anyone from detecting patterns in your encrypted data.",
-      onEvent: async () => {
-        await events.emit(generateIV());
-      },
-    },
-  },
-  outputs: {
-    default: {
-      name: "Encryption IV",
-      description:
-        "A unique code (IV) that you use together with your encryption key to safely encrypt data.",
-      possiblePrimaryParents: ["default"],
-      type: {
-        type: "string",
-        description:
-          "A unique code that works with your encryption key to protect data.\n\n" +
-          "How to use:\n" +
-          "- Combine this IV with your encryption key to encrypt sensitive information\n" +
-          "- Include this IV in your event data (it's safe to share)\n" +
-          "- You'll need both the key and this IV to decrypt your data later\n" +
-          "- Each encryption gets a fresh IV for maximum security",
-      },
     },
   },
 };
@@ -119,16 +83,6 @@ async function generateKey(): Promise<string> {
 
   // Convert to base64
   return btoa(String.fromCharCode(...new Uint8Array(rawKey)));
-}
-
-// Helper function to generate a random IV for AES-GCM
-function generateIV(): string {
-  // Generate 12 bytes (96 bits) for AES-GCM
-  const iv = new Uint8Array(12);
-  crypto.getRandomValues(iv);
-
-  // Convert to base64
-  return btoa(String.fromCharCode(...iv));
 }
 
 export default encryptionKey;

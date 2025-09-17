@@ -54,7 +54,7 @@ const merge: AppBlock = {
         matchingKey: {
           name: "Matching key",
           description:
-            "**Identifier for matching** with secondary events that have the same key.\n\n**Key selection:**\n- Use unique identifiers that both event streams share\n- Ensure keys are consistent between primary and secondary events\n- Choose keys that won't accidentally match unrelated events\n\n**Examples:**\n- **Request correlation**: `event.data.requestId` or `event.data.correlationId`\n- **User workflows**: `event.data.userId + ':' + event.data.sessionId`\n- **Order processing**: `event.data.orderId`\n- **API calls**: `event.data.apiCallId` or `event.data.transactionId`\n- **File processing**: `event.data.fileId` or `event.data.batchId`\n\n**Important:** Both primary and secondary events must use identical keys to match.",
+            "**Identifier for matching** with secondary events that have the same key.\n\n**Key selection:**\n- Use unique identifiers that both event streams share\n- Ensure keys are consistent between primary and secondary events\n- Choose keys that won't accidentally match unrelated events\n\n**Examples:**\n- **Request correlation**: `outputs.request.requestId` or `outputs.request.correlationId`\n- **User workflows**: `outputs.request.userId + ':' + outputs.request.sessionId`\n- **Order processing**: `outputs.request.orderId`\n- **API calls**: `outputs.request.apiCallId` or `outputs.request.transactionId`\n- **File processing**: `outputs.request.fileId` or `outputs.request.batchId`\n\n**Important:** Both primary and secondary events must use identical keys to match.",
           type: "string",
           required: true,
         },
@@ -116,7 +116,7 @@ const merge: AppBlock = {
         payload: {
           name: "Payload",
           description:
-            "**Data to merge** with the primary event - this becomes the merged result.\n\n**What to include:**\n- Response data from API calls\n- Results from processing operations\n- User input or approval decisions\n- Enrichment data from external sources\n- Status updates or completion information\n\n**Examples:**\n- **API responses**: `event.data.responseBody` or complete API result\n- **User approvals**: `{approved: true, approvedBy: userId, timestamp: now}`\n- **Processing results**: `{status: 'completed', result: processedData}`\n- **External data**: Database query results or third-party service data\n- **File processing**: `{processedFile: fileUrl, metadata: fileInfo}`\n\n**This payload becomes the `payload` field in the merged output event.**",
+            "**Data to merge** with the primary event - this becomes the merged result.\n\n**What to include:**\n- Response data from API calls\n- Results from processing operations\n- User input or approval decisions\n- Enrichment data from external sources\n- Status updates or completion information\n\n**Examples:**\n- **API responses**: `outputs.data.responseBody` or complete API result\n- **User approvals**: `{approved: true, approvedBy: userId, timestamp: now}`\n- **Processing results**: `{status: 'completed', result: processedData}`\n- **External data**: Database query results or third-party service data\n- **File processing**: `{processedFile: fileUrl, metadata: fileInfo}`\n\n**This payload becomes the `payload` field in the merged output event.**",
           type: "any",
           required: true,
         },
