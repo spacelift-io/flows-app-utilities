@@ -3,6 +3,7 @@ import label from "./label.ts";
 
 const display: AppBlock = {
   name: "Display",
+  category: "Display",
   description:
     "Shows status information on the canvas with text labels and color indicators based on signals. " +
     "Creates visual status displays that represent the current state of your workflow.\n\n" +

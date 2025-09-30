@@ -3,6 +3,7 @@ import TurndownService from "turndown";
 
 const htmlToMarkdown: AppBlock = {
   name: "HTML to Markdown",
+  category: "Transform",
   description: "Converts HTML content to Markdown format using turndown",
   config: {},
   inputs: {

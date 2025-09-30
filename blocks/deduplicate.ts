@@ -2,6 +2,7 @@ import { AppBlock, events, kv } from "@slflows/sdk/v1";
 
 const deduplicate: AppBlock = {
   name: "Deduplicate",
+  category: "Transform",
   description:
     "Prevents duplicate events from being processed by tracking unique identifiers " +
     "within a time window. All events still pass through, but they're marked as " +

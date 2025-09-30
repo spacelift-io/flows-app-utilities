@@ -26,6 +26,7 @@ const statusHeld: EntityLifecycleCallbackOutput = {
 const mutex: AppBlock = {
   autoconfirm: true,
   name: "Mutex",
+  category: "Control",
   description:
     "Ensures only one event can be processed at a time by creating a queue system.\n\n" +
     "How it works:\n" +
