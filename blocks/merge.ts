@@ -2,6 +2,7 @@ import { AppBlock, events, kv, timers } from "@slflows/sdk/v1";
 
 const merge: AppBlock = {
   name: "Merge",
+  category: "Transform",
   description:
     "Combines data from two separate event streams by matching events with the same key.\n\n" +
     "How it works:\n" +

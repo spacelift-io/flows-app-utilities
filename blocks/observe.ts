@@ -2,6 +2,7 @@ import { AppBlock, events } from "@slflows/sdk/v1";
 
 const observe: AppBlock = {
   name: "Observe",
+  category: "Data",
   description: "Watches signals for changes and emits events when they occur",
   config: {
     value: {

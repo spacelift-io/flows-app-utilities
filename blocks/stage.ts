@@ -4,6 +4,7 @@ const PERSIST_KEY = "persist";
 
 const stage: AppBlock = {
   name: "Stage",
+  category: "Data",
   description:
     "Stages config changes as signals with manual commit control - like having " +
     '"Save Draft" vs "Publish" buttons.\n\n' +

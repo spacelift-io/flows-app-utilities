@@ -8,6 +8,7 @@ const KV_KEYS = {
 
 const capture: AppBlock = {
   name: "Capture",
+  category: "Data",
   description:
     "Converts events into persistent signals that other blocks can observe",
   config: {

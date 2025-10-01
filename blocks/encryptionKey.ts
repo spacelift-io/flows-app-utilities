@@ -3,6 +3,7 @@ import { AppBlock } from "@slflows/sdk/v1";
 const encryptionKey: AppBlock = {
   autoconfirm: true,
   name: "Encryption key",
+  category: "Security",
   description:
     "Creates secure encryption keys to protect your sensitive data. " +
     "This block generates a strong encryption key that stays in your environment " +

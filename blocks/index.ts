@@ -7,6 +7,8 @@ import merge from "./merge.ts";
 import mutex from "./mutex.ts";
 import observe from "./observe.ts";
 import stage from "./stage.ts";
+import subroutineCall from "./subroutineCall.ts";
+import subroutineDefinition from "./subroutineDefinition.ts";
 import timeout from "./timeout.ts";
 
 export const blocks = {
@@ -19,5 +21,7 @@ export const blocks = {
   mutex,
   observe,
   stage,
+  subroutineCall,
+  subroutineDefinition,
   timeout,
 };

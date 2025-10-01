@@ -2,6 +2,7 @@ import { AppBlock, events, kv, timers } from "@slflows/sdk/v1";
 
 const timeout: AppBlock = {
   name: "Timeout",
+  category: "Control",
   description:
     "Creates cancellable delayed events that emit after a specified time period.\n\n" +
     "How it works:\n" +
